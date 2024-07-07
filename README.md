@@ -1,2 +1,3 @@
-# Drone_Docking
-Code for Deep Reinforcement Learning for Sim2Real Policy Transfer in VTOL-UAVs Offshore Docking Operations
+# Offshore Drone Docking using Deep-RL
+## [Project Website](https://phoenixrider12.github.io/DroneDocing) | [Paper](https://www.sciencedirect.com/science/article/pii/S1568494624006173?ref=pdf_download&fr=RR-2&rr=89f668a94f1b919e)
+This is the codebase for our paper [Deep Reinforcement Learning for Sim2Real Policy Transfer in VTOL-UAVs Offshore Docking Operations](https://www.sciencedirect.com/science/article/pii/S1568494624006173?ref=pdf_download&fr=RR-2&rr=89f662ca6e01919e). We present a framework for docking operation of VTOL-UAVs in offshore docking operations using deep reinforcement learning
