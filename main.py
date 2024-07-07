@@ -12,18 +12,20 @@ from replay_buffer import PPOMemory
 from utils import create_video, plot_metrics
 import matplotlib.pyplot as plt
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 Tensor = torch.Tensor
 LongTensor = torch.LongTensor
 
 gamma = 0.99
-learning_rate = 0.0003
+learning_rate = 0.00003
 gae_lambda = 0.95
 policy_clip = 0.2
 batch_size = 5
 n_epochs = 4
 hidden_layer = 256
 steps_update_frequency = 5
+num_training_episodes = 500
+num_testing_episodes = 10
 
 def initialization(enable_disturbance):
     env = UAVDockingEnv(dt=0.1, enable_disturbance=enable_disturbance)
@@ -62,7 +64,6 @@ def training(num_training_episodes, env, agent):
 
         wave = 10 * env.generate_random_wave()    # Initializing new wave for each episode
         disturbance.append(np.mean(wave))
-        
         while True:
             # Check which is the environment
             if type(env).__name__ == 'FactoryEnv':
@@ -76,7 +77,8 @@ def training(num_training_episodes, env, agent):
             n_steps += 1
 
             observation_, reward, done, info = env.step(action, curr_time, n_steps, wave)
-            # print('state:', observation, 'action:', action, 'new state:', observation_)
+            if observation[0] < 5:
+                print('state:', observation, 'action:', action, 'new state:', observation_)
             score += reward
 
             agent.remember(observation, action, prob, val, reward, done, mask)
@@ -133,7 +135,7 @@ def evaluation(num_testing_episodes, env, agent):
         done = False
         score = 0
 
-        wave = 10 * env.generate_random_wave()       # Wave initialization
+        wave = 10 * env.generate_random_wave()
 
         while not done:
             # Check which is the environment
@@ -200,8 +202,8 @@ def simulate_agent(env, agent):
     step = 0
     disturbance_bound = 1
     new_episode = True
-    wave = 10 * env.generate_random_wave()    # Wave initialization
-
+    wave = 10 * env.generate_random_wave()
+    step_times = 0
     while not done:
         # Check which is the environment
         if type(env).__name__ == 'FactoryEnv':
@@ -210,11 +212,14 @@ def simulate_agent(env, agent):
             mask=None
             feasible_idxs=None
 
+        step_time = time.time()
         action, _, _ = agent.choose_action(state, mask, feasible_idxs)
         curr_time = time.time()
+        print('Time:', curr_time - step_time)
         step += 1
+        step_times += curr_time - step_time
         state_, reward, done, _ = env.step(action, curr_time, step, wave)
-        # print('state:', state, 'action:', action, 'new state:', state_)
+        print('state:', state, 'action:', action, 'new state:', state_)
         new_episode = False
 
         state = state_
@@ -230,26 +235,27 @@ def simulate_agent(env, agent):
             env.render(total_time, total_reward, step)
             print('Time Taken:', total_time)
             print('Total Reward:', total_reward)
-                
+            print('Total Steps:', step)
+            print('Average Inference Time:', step_times/step)
             break
 
 
-num_training_episodes = 500
-num_testing_episodes = 10
-
 # SAVING:
-saving_flag = True           # True if you want to save the trained model
+saving_flag = False
 cwd = os.getcwd()
 
 # LOADING:
-loading_flag = False         # True if you want to load a pre-trained model, False if you want to train a new model
-session = 1698522963
+loading_flag = False
+session = 'final'
+
+#EVALUATION
+evaluation_flag = False
 
 #SIMULATION
-simulation_flag = False      # True if you want to simulate the trained agent and save results(video)
+simulation_flag = False
 
 #DISTURBANCE
-enable_disturbance = True    # True if you want to enable the disturbance
+enable_disturbance = True
 
 
 if __name__ == '__main__':

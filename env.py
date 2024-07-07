@@ -50,13 +50,14 @@ class UAVDockingEnv:
         self.fz = self.mass * (self.az - self.g) + self.thrust
         self.hovering_acceleration = self.g  # Force required to hover
         
-        self.dockz = 0.0 # Docking station z position (target)
+        # self.target_height = 0.0
+        self.dockz = 0.0 # Docking station z position
         self.target_velocity = 0.1
         self.state = [self.bz, self.vz]  # UAV state [z, z_dot]
         # self.action_space = spaces.Discrete(3)
         self.actions = np.array([self.g-1.0, self.g, self.g+1.0])  # Actions: [downward acceleration, hover, upward acceleration]
         self.k1 = 0.5 # Reward weight for z position
-        self.k2 = 2.3 # Reward weight for z velocity
+        self.k2 = 1.5 # Reward weight for z velocity
         self.tolerance_height = 0.5  # Tolerance for z position
         self.enable_disturbance = enable_disturbance
         self.max_steps = 100
@@ -96,13 +97,13 @@ class UAVDockingEnv:
         self.state = [10.0, 0.0]
         return self.state
 
-    def dynamics(self, state, t, action):   # Drone 1D dynamics
+    def dynamics(self, state, t, action):
         z, z_dot = state
         z_dot_dot = action  # Action directly affects z acceleration
         state_dot = [z_dot, z_dot_dot]
         return state_dot
 
-    def gaussian(x, variance):    # Not needed now
+    def gaussian(x, variance):
         pdf = (1 / (np.sqrt(2 * np.pi) * np.sqrt(variance))) * np.exp(-((x) ** 2) / (2 * variance))
         return pdf
 
@@ -125,7 +126,7 @@ class UAVDockingEnv:
         wave *= self.scaling_factor
         return np.real(wave)[:num_samples]
 
-    def disturbance(self, disturbance_bound):                  # Not needed now
+    def disturbance(self, disturbance_bound):
         samples = np.linspace(-100, 100, 500, endpoint=False)
         variance = disturbance_bound
         gaussian_values = []
@@ -136,13 +137,11 @@ class UAVDockingEnv:
     def step(self, action_idx, time, step, wave):
         
         if self.enable_disturbance:
-            self.dockz = wave[step - 1]             # Set new position of docking station at each step
+            self.dockz = wave[step - 1]
         # print('dockz:', self.dockz)
-        
         action = self.actions[action_idx] # az
-        self.az = action - self.g - (self.kfdz * self.state[0]) / self.mass    # Effective acceleration in z-direction
-
-        new_state = odeint(self.dynamics, self.state, [time, time+self.dt], args=(self.az,))[-1]    # Integrate to get new state
+        self.az = action - self.g - (self.kfdz * self.state[0]) / self.mass
+        new_state = odeint(self.dynamics, self.state, [time, time+self.dt], args=(self.az,))[-1]
         self.state = new_state # z pos and z vel
         reward = self.calculate_reward(self.state)
         done = self.is_done(step)
@@ -151,9 +150,9 @@ class UAVDockingEnv:
 
     def calculate_reward(self, state):
         if abs(state[0] - self.dockz) > (self.bz / 2):
-            reward = - self.k1 * abs(state[0] - self.dockz)     # Penalize only height difference ntil it reaches half height
+            reward = - self.k1 * abs(state[0] - self.dockz)
         else:
-            reward = - self.k2 * abs(state[1] - self.target_velocity)    # Penalize only velocity difference for deceleration and reducing velocity
+            reward = - self.k2 * abs(state[1] - self.target_velocity)
         return reward
 
     def is_done(self, step):
@@ -167,7 +166,7 @@ class UAVDockingEnv:
         self.base = plt.imread("../baseplane.png")
         self.dronebox = OffsetImage(self.drone, zoom = 0.15)   
         self.basebox = OffsetImage(self.base, zoom = 0.15)
-
+        
         self.fig, self.ax = plt.subplots(figsize=(12,5))
         self.ax.set_title('Episode: 500')
         self.ax.set_xlabel('X coordinate (m)')

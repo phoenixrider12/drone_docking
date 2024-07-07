@@ -28,6 +28,16 @@ def moving_std(data, window_size):
 
 def plot_metrics(total_steps, score_history, mean_score_history, actor_loss, critic_loss, total_loss, final_height, final_velocity, disturbance):
 
+    np.save('steps.npy', total_steps)
+    np.save('score.npy', score_history)
+    np.save('mean_score.npy', mean_score_history)
+    np.save('actor_loss.npy', actor_loss)
+    np.save('critic_loss.npy', critic_loss)
+    np.save('total_loss.npy', total_loss)
+    np.save('final_height.npy', final_height)
+    np.save('final_velocity.npy', final_velocity)
+    np.save('disturbances.npy', disturbance)
+
     plt.figure(figsize=(12,5))
     plt.title("Steps Number to Dock Safely")
     plt.plot(total_steps, alpha=0.6, color='green')
