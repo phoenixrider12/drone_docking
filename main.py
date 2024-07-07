@@ -20,6 +20,7 @@ egreedy_final = 0.01
 report_interval = 10
 score_to_solve = 195
 
+# Configurable Parameters
 clip_error = False
 double_dqn = False
 dueling_dqn = False
@@ -30,7 +31,7 @@ batch_size = 64
 egreedy_decay = 1200
 hidden_layer = 64
 num_episodes = 500
-enable_disturbance = True
+enable_disturbance = True           # can be configured
 
 memory = ReplayBuffer(replay_mem_size)
 env = UAVDockingEnv(dt=0.1,enable_disturbance=enable_disturbance)
@@ -40,7 +41,7 @@ number_of_outputs = 3
 
 def train():
 
-    agent = QNet_Agent(env, memory, number_of_inputs, hidden_layer, number_of_outputs, device, learning_rate, batch_size, gamma, update_target_frequency, egreedy_final, egreedy, egreedy_decay)
+    agent = QNet_Agent(env, memory, number_of_inputs, hidden_layer, number_of_outputs, device, learning_rate, batch_size, gamma, update_target_frequency, egreedy_final, egreedy, egreedy_decay, double_dqn, dueling_dqn)
 
     steps_total = []
     loss_total = []
@@ -59,12 +60,8 @@ def train():
 
         step = 0
         score = 0
-        # new_episode = True
-        # disturbance_range = list(np.linspace(-1, 1, num_episodes))
-        # disturbance_bound = random.sample(disturbance_range, 1)[0]
         wave = 10 * env.generate_random_wave()
         disturbance.append(np.mean(wave))
-
         while True:
 
             step += 1
@@ -105,7 +102,7 @@ def train():
         final_height.append(state[0])
         final_velocity.append(state[1])
 
-    torch.save(agent.nn, 'dqn_model_env.pth')
+    torch.save(agent.nn, 'dueling_dqn_model_env.pth')
 
     print("Average number of steps: %.2f" % (sum(steps_total)/num_episodes))   # Print the average number of steps over the number of episodes
     loss_sum = 0
@@ -117,12 +114,17 @@ def train():
     print('Average loss:', float(loss_sum)/float(count))
 
     plot_metrics(steps_total, rewards, loss_total, eps_total, final_height, final_velocity, disturbance)
-
+    np.save('steps.npy', steps_total)
+    np.save('reward.npy', rewards)
+    np.save('loss.npy', loss_total)
+    np.save('epsilon.npy', eps_total)
+    np.save('heights.npy', final_height)
+    np.save('velocities.npy', final_velocity)
+    np.save('disturbance.npy', disturbance)
 def simulate():
 
-    # env = UAVDockingEnv()
-    agent = QNet_Agent(env, memory, number_of_inputs, hidden_layer, number_of_outputs, device, learning_rate, batch_size, gamma, update_target_frequency, egreedy_final, egreedy, egreedy_decay)
-    agent.nn = torch.load('dqn_model_env.pth')
+    agent = QNet_Agent(env, memory, number_of_inputs, hidden_layer, number_of_outputs, device, learning_rate, batch_size, gamma, update_target_frequency, egreedy_final, egreedy, egreedy_decay, double_dqn, dueling_dqn)
+    agent.nn = torch.load('dueling_dqn_model_env.pth')
 
     done = False
     env.state = env.reset()
@@ -130,16 +132,17 @@ def simulate():
     total_time = 0
     initial_time = time.time()
     step = 0
-    # disturbance_bound = 1
-    # new_episode = True
-    wave = 10 * env.generate_random_wave()
 
+    wave = 10 * env.generate_random_wave()
+    step_times = 0
     while not done:
         step += 1
         epsilon = 0
-
-        action = agent.select_action(env.state, epsilon)   
-        curr_time = time.time()     
+        step_time = time.time()
+        action = agent.select_action(env.state, epsilon)
+        curr_time = time.time()
+        print('Time:', curr_time - step_time)
+        step_times += curr_time - step_time
         new_state, reward, done, info = env.step(action, curr_time, step, wave)
         print('state:', env.state, 'action:', action, 'new_state:', new_state)
         # new_episode = False
@@ -156,10 +159,11 @@ def simulate():
         if done:
             print('Time Taken:', total_time)
             print('Total Reward:', total_reward)
-                
+            print('Total Steps:', step)                
+            print('Average Inference Time:', step_times/step)
             break
 
-to_train = True
+to_train = True      # True for training and False for evaluation
 
 if to_train:
     train()

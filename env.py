@@ -72,6 +72,18 @@ class UAVDockingEnv:
         self.simulation_time = 10  # seconds
         self.scaling_factor = 2.5
 
+        self.drone = plt.imread("../drone.png")
+        self.base = plt.imread("../baseplane.png")
+        self.fig, self.ax = plt.subplots(figsize=(12,5))
+        self.dronebox = OffsetImage(self.drone, zoom = 0.15)   
+        self.basebox = OffsetImage(self.base, zoom = 0.15)
+
+        self.ax.set_title('Episode: 500')
+        self.ax.set_xlabel('X coordinate (m)')
+        self.ax.set_ylabel('Height (m)')
+        self.ax.set_xlim(-5, 5)
+        self.ax.set_ylim(0, 12)
+
     def euler_angles_to_rotation_matrix(phi, theta, psi):
         phi_rad = np.radians(phi)
         theta_rad = np.radians(theta)
@@ -138,7 +150,7 @@ class UAVDockingEnv:
         
         if self.enable_disturbance:
             self.dockz = wave[step - 1]
-        # print('dockz:', self.dockz)
+        print('dockz:', self.dockz)
         action = self.actions[action_idx] # az
         self.az = action - self.g - (self.kfdz * self.state[0]) / self.mass
         new_state = odeint(self.dynamics, self.state, [time, time+self.dt], args=(self.az,))[-1]
